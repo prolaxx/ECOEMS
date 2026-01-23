@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import clientPromise from '@/lib/mongodb';
+import { getMongoClient } from '@/lib/mongodb';
 import { randomBytes } from 'crypto';
 
 type SignInPayload = {
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const client = await clientPromise;
+    const client = await getMongoClient();
     const db = client.db();
     const users = db.collection('users');
 

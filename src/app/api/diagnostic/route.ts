@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import clientPromise from '@/lib/mongodb';
+import { getMongoClient } from '@/lib/mongodb';
 import type { Attempt, ExamResults } from '@/types/exam';
 
 type DiagnosticPayload = {
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'userId is required' }, { status: 400 });
     }
 
-    const client = await clientPromise;
+    const client = await getMongoClient();
     const db = client.db();
     const diagnostics = db.collection('diagnostics');
 
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
       updatedAt: new Date(),
     };
 
-    const client = await clientPromise;
+    const client = await getMongoClient();
     const db = client.db();
     const diagnostics = db.collection('diagnostics');
 
