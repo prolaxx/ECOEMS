@@ -427,7 +427,7 @@ export const useExamStore = create<ExamState>()(
         if (!user || !currentAttempt || !results) return;
 
         try {
-          await fetch('/api/diagnostic', {
+          const response = await fetch('/api/diagnostic', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -436,6 +436,12 @@ export const useExamStore = create<ExamState>()(
               results
             })
           });
+
+          // Clear results from local storage for regular users after sync
+          // Admins retain results for navigation to /resultados
+          if (response.ok && user.role !== 'admin') {
+            set({ results: null });
+          }
         } catch (error) {
           console.error('Error syncing diagnostic:', error);
         }

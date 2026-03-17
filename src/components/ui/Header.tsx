@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/authStore';
 import { AuthModal } from '@/components/auth/AuthModal';
-import { IconBolt } from './Icons';
+import { ShieldCheck } from 'lucide-react';
 
 export function Header() {
   const { user, signOut, initialize } = useAuthStore();
@@ -17,6 +17,11 @@ export function Header() {
   const handleLogout = async () => {
     await signOut();
   };
+
+  const isAdmin = user?.role === 'admin';
+
+  // Don't show header on admin pages (they have their own nav)
+  if (isAdmin) return null;
 
   return (
     <>

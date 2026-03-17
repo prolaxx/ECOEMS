@@ -14,7 +14,8 @@ import { SubtopicGrid } from '@/components/results/SubtopicGrid';
 import { 
   Home, 
   Download, 
-  AlertCircle
+  AlertCircle,
+  ShieldAlert
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -22,11 +23,10 @@ type Tab = 'resumen' | 'areas' | 'prioridades' | 'plan' | 'errores';
 
 function ResultsContent() {
   const router = useRouter();
-  const { results, loadResultsFromHistory, hasCompletedDiagnostic } = useExamStore();
+  const { results, loadResultsFromHistory } = useExamStore();
   const { user, initialize: initAuth } = useAuthStore();
   const [activeTab, setActiveTab] = useState<Tab>('resumen');
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
-  const [pdfDownloaded, setPdfDownloaded] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [loadedResults, setLoadedResults] = useState(results);
 
@@ -34,6 +34,25 @@ function ResultsContent() {
   useEffect(() => {
     initAuth();
   }, [initAuth]);
+
+  // Admin-only guard
+  useEffect(() => {
+    const currentUser = useAuthStore.getState().user;
+    if (currentUser && currentUser.role !== 'admin') {
+      router.push('/');
+      return;
+    }
+    if (!currentUser) {
+      // Give a moment for auth to rehydrate
+      const timer = setTimeout(() => {
+        const u = useAuthStore.getState().user;
+        if (!u || u.role !== 'admin') {
+          router.push('/');
+        }
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [router]);
 
   // Load results (from store or from DB)
   useEffect(() => {
@@ -44,8 +63,7 @@ function ResultsContent() {
         return;
       }
 
-      // Try to load from DB if user is logged in
-      if (user) {
+      if (user?.role === 'admin') {
         const dbResults = await loadResultsFromHistory();
         if (dbResults) {
           setLoadedResults(dbResults);
@@ -57,33 +75,12 @@ function ResultsContent() {
     loadResults();
   }, [results, user, loadResultsFromHistory]);
 
-  // Redirect to home if no results and not loading
+  // Redirect to admin panel if no results and not loading
   useEffect(() => {
-    if (!isLoading && !loadedResults) {
-      router.push('/');
+    if (!isLoading && !loadedResults && user?.role === 'admin') {
+      router.push('/admin');
     }
-  }, [isLoading, loadedResults, router]);
-
-  // Auto-download PDF on first load
-  useEffect(() => {
-    if (!loadedResults || pdfDownloaded) return;
-
-    const autoDownload = async () => {
-      setIsGeneratingPDF(true);
-      try {
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        const { generatePDF } = await import('@/components/pdf/PdfGenerator');
-        await generatePDF(loadedResults);
-        setPdfDownloaded(true);
-      } catch (error) {
-        console.error('Error generating PDF:', error);
-      } finally {
-        setIsGeneratingPDF(false);
-      }
-    };
-
-    autoDownload();
-  }, [loadedResults, pdfDownloaded]);
+  }, [isLoading, loadedResults, router, user]);
 
   if (isLoading) {
     return (
@@ -104,10 +101,10 @@ function ResultsContent() {
           <h2 className="text-xl font-bold text-[#002B7A] mb-2 font-serif">Sin resultados</h2>
           <p className="text-slate-600 mb-6">No hay resultados disponibles para mostrar.</p>
           <Link
-            href="/"
+            href="/admin"
             className="btn-secondary px-6 py-3 rounded-xl font-medium inline-flex items-center gap-2"
           >
-            Volver al inicio
+            Volver al Panel Admin
           </Link>
         </div>
       </div>
@@ -140,13 +137,22 @@ function ResultsContent() {
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200 shadow-sm">
         <div className="max-w-6xl mx-auto px-4 lg:px-8 py-4">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-            <div>
-              <h1 className="font-serif text-2xl md:text-3xl font-bold text-[#002B7A]">
-                Resultados del Diagnóstico
-              </h1>
-              <p className="text-slate-500 text-sm mt-1">
-                Análisis completo de tu desempeño académico
-              </p>
+            <div className="flex items-center gap-4">
+              <Link
+                href="/admin"
+                className="p-2 rounded-lg text-slate-500 hover:text-[#002B7A] hover:bg-slate-100 transition-colors"
+                title="Volver al Panel Admin"
+              >
+                <Home className="w-5 h-5" />
+              </Link>
+              <div>
+                <h1 className="font-serif text-2xl md:text-3xl font-bold text-[#002B7A]">
+                  Resultados del Diagnóstico
+                </h1>
+                <p className="text-slate-500 text-sm mt-1">
+                  Vista de administrador — Análisis completo del desempeño
+                </p>
+              </div>
             </div>
             
             <div className="flex items-center gap-3">
@@ -168,7 +174,7 @@ function ResultsContent() {
                 ) : (
                   <>
                     <Download className="w-4 h-4" />
-                    <span>Descargar Reporte</span>
+                    <span>Descargar PDF</span>
                   </>
                 )}
               </button>
@@ -259,11 +265,11 @@ function ResultsContent() {
       <footer className="border-t border-slate-200 mt-16 bg-white py-8">
         <div className="max-w-6xl mx-auto px-4 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4">
           <Link
-            href="/"
+            href="/admin"
             className="flex items-center gap-2 text-slate-500 hover:text-[#002B7A] transition-colors text-sm font-medium"
           >
             <Home className="w-4 h-4" />
-            Volver al inicio
+            Volver al Panel Admin
           </Link>
           
           <p className="text-slate-400 text-sm">

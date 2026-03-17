@@ -15,12 +15,12 @@ import { EXAM_SECTIONS } from '@/lib/constants';
 import { useAuthStore } from '@/store/authStore';
 import { useExamStore } from '@/store/examStore';
 import { AuthModal } from '@/components/auth/AuthModal';
-import { CheckCircle2, Eye } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
 
 export default function Home() {
   const router = useRouter();
   const { user, initialize: initAuth } = useAuthStore();
-  const { hasCompletedDiagnostic, checkExistingDiagnostic, results } = useExamStore();
+  const { hasCompletedDiagnostic, checkExistingDiagnostic } = useExamStore();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [pendingPath, setPendingPath] = useState<string | null>(null);
   const [isCheckingHistory, setIsCheckingHistory] = useState(false);
@@ -32,11 +32,15 @@ export default function Home() {
 
   // Check if user already completed diagnostic when logged in
   useEffect(() => {
-    if (user) {
+    if (user && user.role !== 'admin') {
       setIsCheckingHistory(true);
       checkExistingDiagnostic().finally(() => setIsCheckingHistory(false));
     }
-  }, [user, checkExistingDiagnostic]);
+    // Redirect admin to their panel
+    if (user?.role === 'admin') {
+      router.push('/admin');
+    }
+  }, [user, checkExistingDiagnostic, router]);
 
   const handleNavigation = (path: string) => {
     if (!user) {
@@ -47,27 +51,16 @@ export default function Home() {
     }
   };
 
-  const handleViewResults = () => {
-    if (results) {
-      router.push('/resultados');
-    } else {
-      // Load results from DB and redirect
-      setIsCheckingHistory(true);
-      checkExistingDiagnostic().then(({ results: loadedResults }) => {
-        setIsCheckingHistory(false);
-        if (loadedResults) {
-          router.push('/resultados');
-        }
-      });
-    }
-  };
-
   const checkLoginAndRedirect = () => {
     setTimeout(() => {
       const currentUser = useAuthStore.getState().user;
-      if (currentUser && pendingPath) {
-        router.push(pendingPath);
-        setPendingPath(null);
+      if (currentUser) {
+        if (currentUser.role === 'admin') {
+          router.push('/admin');
+        } else if (pendingPath) {
+          router.push(pendingPath);
+          setPendingPath(null);
+        }
       }
     }, 100);
     setShowAuthModal(false);
@@ -99,21 +92,16 @@ export default function Home() {
 
           {/* CTA Actions */}
           <div className="flex flex-col sm:flex-row gap-5 justify-center items-center mb-16">
-            {/* Diagnostic Button - changes based on completion status */}
+            {/* Diagnostic Button - disabled once completed */}
             {user && hasCompletedDiagnostic ? (
-              <button
-                onClick={handleViewResults}
-                disabled={isCheckingHistory}
-                className="group bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-xl flex items-center gap-3 font-semibold text-lg shadow-lg hover:shadow-xl transition-all disabled:opacity-70"
-              >
+              <div className="group bg-emerald-600 text-white px-8 py-4 rounded-xl flex items-center gap-3 font-semibold text-lg shadow-lg opacity-80 cursor-not-allowed">
                 {isCheckingHistory ? (
                   <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
                   <CheckCircle2 className="w-6 h-6" />
                 )}
-                Ver Mis Resultados
-                <Eye className="w-5 h-5 opacity-70" />
-              </button>
+                Diagnóstico Completado
+              </div>
             ) : (
               <button
                 onClick={() => handleNavigation('/instrucciones?modo=simulador_realista')}
@@ -145,7 +133,7 @@ export default function Home() {
           {user && hasCompletedDiagnostic && (
             <div className="inline-flex items-center gap-3 px-6 py-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 mb-8">
               <CheckCircle2 className="w-5 h-5" />
-              <span className="font-medium">¡Diagnóstico completado! Revisa tus resultados y plan de estudio.</span>
+              <span className="font-medium">¡Diagnóstico completado! El administrador revisará tus resultados.</span>
             </div>
           )}
 

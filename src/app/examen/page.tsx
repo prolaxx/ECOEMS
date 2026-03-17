@@ -127,10 +127,11 @@ function ExamContent() {
     initExam();
   }, []);
 
-  // Redirect to results if exam is completed
+  // Redirect after exam completion
   useEffect(() => {
     if (results && !isAnalyzing) {
-      router.push('/resultados');
+      const isAdmin = useAuthStore.getState().user?.role === 'admin';
+      router.push(isAdmin ? '/resultados' : '/examen/completado');
     }
   }, [results, router, isAnalyzing]);
 
@@ -176,16 +177,10 @@ function ExamContent() {
           <p className="text-slate-600 mb-8">{error}</p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
-              href="/resultados"
+              href="/"
               className="btn-primary px-6 py-3 rounded-lg font-semibold inline-flex items-center gap-2 justify-center"
             >
               <CheckCircle2 className="w-5 h-5" />
-              Ver Mis Resultados
-            </Link>
-            <Link
-              href="/"
-              className="btn-secondary px-6 py-3 rounded-lg font-medium inline-flex items-center gap-2 justify-center"
-            >
               Volver al Inicio
             </Link>
           </div>
