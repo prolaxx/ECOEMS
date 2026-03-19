@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { AuthModal } from '@/components/auth/AuthModal';
-import { ShieldCheck } from 'lucide-react';
 
 export function Header() {
   const { user, signOut, initialize } = useAuthStore();
   const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     initialize();
@@ -16,6 +17,17 @@ export function Header() {
 
   const handleLogout = async () => {
     await signOut();
+  };
+
+  const handleAuthClose = () => {
+    setIsAuthOpen(false);
+    // Redirect admin to panel after login
+    setTimeout(() => {
+      const currentUser = useAuthStore.getState().user;
+      if (currentUser?.role === 'admin') {
+        router.push('/admin');
+      }
+    }, 100);
   };
 
   const isAdmin = user?.role === 'admin';
@@ -57,7 +69,7 @@ export function Header() {
         </div>
       </header>
 
-      <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
+      <AuthModal isOpen={isAuthOpen} onClose={handleAuthClose} />
     </>
   );
 }
