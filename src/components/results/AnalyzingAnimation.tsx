@@ -20,11 +20,15 @@ export function AnalyzingAnimation({ onComplete }: AnalyzingAnimationProps) {
     { text: "Finalizando diagnóstico...", icon: IconBrain, color: "text-[#002B7A]" }
   ];
 
+  // Keep a stable ref to onComplete so re-renders don't restart the animation
+  const onCompleteRef = useRef(onComplete);
+  useEffect(() => { onCompleteRef.current = onComplete; }, [onComplete]);
+
   // Canvas ref for particle system
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    // Progress & Stage Logic
+    // Progress & Stage Logic — empty deps so this never restarts
     const totalDuration = 4500; // 4.5 seconds total animation
     const intervalTime = 50;
     const steps = totalDuration / intervalTime;
@@ -44,12 +48,13 @@ export function AnalyzingAnimation({ onComplete }: AnalyzingAnimationProps) {
 
       if (currentStep >= steps) {
         clearInterval(timer);
-        setTimeout(onComplete, 500); // Small delay at 100%
+        setTimeout(() => onCompleteRef.current(), 500); // Small delay at 100%
       }
     }, intervalTime);
 
     return () => clearInterval(timer);
-  }, [onComplete]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Particle System Effect
   useEffect(() => {

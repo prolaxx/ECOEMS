@@ -127,14 +127,6 @@ function ExamContent() {
     initExam();
   }, []);
 
-  // Redirect after exam completion
-  useEffect(() => {
-    if (results && !isAnalyzing) {
-      const isAdmin = useAuthStore.getState().user?.role === 'admin';
-      router.push(isAdmin ? '/resultados' : '/examen/completado');
-    }
-  }, [results, router, isAnalyzing]);
-
   const handleToggleFullscreen = () => {
     if (isFullscreenMode) {
       exitFullscreen();
@@ -151,7 +143,9 @@ function ExamContent() {
 
   const handleAnalysisComplete = async () => {
     await submitExam();
-    // The useEffect will handle the redirect once results are set
+    // Redirect directly — don't rely on results state (it gets cleared for non-admins)
+    const isAdmin = useAuthStore.getState().user?.role === 'admin';
+    router.push(isAdmin ? '/resultados' : '/examen/completado');
   };
 
   const unanswered = total - answered;
